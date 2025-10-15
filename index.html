@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Sistema O.S. Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root{--bg:#f3f4f6;--panel:#ffffff;--muted:#6b7280;--accent:#3b82f6;--success:#10b981;--danger:#ef4444}
+    body, html, #root { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #111827; overflow: hidden; }
+    .btn{padding:10px 14px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.2s}
+    .btn:active{transform:scale(0.95)}
+    * { -webkit-tap-highlight-color: transparent; box-sizing:border-box }
+    input,textarea{font-family:inherit}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // SISTEMA DE ARMAZENAMENTO INTELIGENTE
+    const storage = {
+      // Detecta se está em ambiente Capacitor
+      isCapacitor: () => {
+        return typeof window !== 'undefined' && 
+               window.Capacitor && 
+               window.Capacitor.Plugins && 
+               window.Capacitor.Plugins.Preferences;
+      },
+      
+      // Carrega dados
+      getItem: async (key) => {
+        try {
+          if (storage.isCapacitor()) {
+            const result = await window.Capacitor.Plugins.Preferences.get({ key });
+            return result.value ? JSON.parse(result.value) : null;
+          }
+          // Fallback localStorage para teste em navegador
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : null;
+        } catch (e) {
+          console.error('Erro ao carregar:', e);
+          return null;
+        }
+      },
+      
+      // Salva dados
+      setItem: async (key, value) => {
+        try {
+          const jsonValue = JSON.stringify(value);
+          if (storage.isCapacitor()) {
+            await window.Capacitor.Plugins.Preferences.set({ 
+              key, 
+              value: jsonValue 
+            });
+          } else {
+            localStorage.setItem(key, jsonValue);
+          }
+          return true;
+        } catch (e) {
+          console.error('Erro ao salvar:', e);
+          return false;
+        }
+      },
+      
+      // Remove dados
+      removeItem: async (key) => {
+        try {
+          if (storage.isCapacitor()) {
+            await window.Capacitor.Plugins.Preferences.remove({ key });
+          } else {
+            localStorage.removeItem(key);
+          }
+        } catch (e) {
+          console.error('Erro ao remover:', e);
+        }
+      }
+    };
+
+    // Utilitários
+    const parseNumber = (text) => {
+      if (!text) return null;
+      const cleaned = String(text).replace(/[^\d.,]/g, '');
+      const m = cleaned.match(/[0-9]+(?:[.,][0-9]{1,2})?/);
+      if (!m) return null;
+      const raw = m[0].replace(/\./g,'').replace(',', '.');
+      const n = parseFloat(raw);
+      return isNaN(n) ? null : n;
+    };
+
+    function parseSolicitud(text) {
+      const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      const joined = lines.join('\n');
+      
+      const getField = (label) => {
+        const re = new RegExp(label + '\\s*[:\\-]?\\s*(.+)', 'i');
+        const m = joined.match(re);
+        return m ? m[1].trim() : '';
+      };
+
+      // Campos com e sem emojis
+      const nome = getField('Nome') || getField('cliente') || getField('👤 Nome');
+      const telefone = getField('Telefone') || getField('tel') || getField('📱 Telefone');
+      const endereco = getField('Endereço') || getField('Endereco') || getField('🏠 Endereço');
+      const servico = getField('Serviço') || getField('Servico') || getField('🛠 Serviço');
+      const descricao = getField('Descrição') || getField('Descricao') || getField('📝 Descrição') || '';
+      const evidenciasRaw = getField('Evidências') || getField('Evidencias') || getField('📸 Evidências') || '';
+      const evidencias = (evidenciasRaw.match(/(\d+)/)||[0,0])[1] ? parseInt((evidenciasRaw.match(/(\d+)/)||[0,0])[1],10) : 0;
+      const datahora = getField('Data/Hora') || getField('Data') || getField('⏰ Data/Hora') || '';
+      const autorizacaoRaw = getField('Autorização') || getField('Autorizacao') || getField('✅ Autorização') || '';
+      const autorizacao = /autorizou|sim|concorda|ok|confirmou/i.test(autorizacaoRaw);
+
+      const valorDetectado = parseNumber(descricao) || parseNumber(joined);
+
+      return {
+        cliente: nome || 'Não informado',
+        telefone: telefone || '',
+        endereco: endereco || '',
+        servico: servico || '',
+        descricao: descricao || joined,
+        evidencias,
+        datahora: datahora || new Date().toLocaleString('pt-BR'),
+        autorizacao,
+        valorDetectado
+      };
+    }
+
+    function App(){
+      const [ordens, setOrdens] = useState([]);
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [chatMessages, setChatMessages] = useState([]);
+      const [chatInput, setChatInput] = useState('');
+      const [awaitingOS, setAwaitingOS] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const chatEndRef = useRef(null);
+
+      // Carrega dados ao iniciar
+      useEffect(()=>{
+        (async()=>{
+          try {
+            const saved = await storage.getItem('ordens');
+            if (saved && Array.isArray(saved)) {
+              setOrdens(saved);
+            }
+          } catch (e) {
+            console.error('Erro ao carregar dados:', e);
+          } finally {
+            setLoading(false);
+          }
+        })();
+      },[]);
+
+      // Auto-scroll do chat
+      useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, [chatMessages]);
+
+      // Persiste dados
+      const persist = async (next) => { 
+        setOrdens(next); 
+        await storage.setItem('ordens', next); 
+      };
+
+      // Cria objeto de O.S.
+      const createOSObject = (data, valor) => ({
+        id: Date.now(),
+        numero: `OS-${String((ordens.length+1)).padStart(4,'0')}`,
+        data: data.datahora || new Date().toLocaleString('pt-BR'),
+        cliente: data.cliente,
+        telefone: data.telefone,
+        endereco: data.endereco,
+        servico: data.servico,
+        descricao: data.descricao,
+        valor: Number(valor || 0),
+        autorizacao: !!data.autorizacao,
+        evidencias: data.evidencias || 0,
+        status: 'pendente'
+      });
+
+      // Processa chat
+      const processChat = async () => {
+        const msg = chatInput.trim();
+        if (!msg) return;
+        
+        setChatMessages(prev=>[...prev,{tipo:'user',texto:msg}]);
+        setChatInput('');
+
+        if (awaitingOS) {
+          const valor = parseNumber(msg);
+          if (valor === null) {
+            setChatMessages(prev=>[...prev,{tipo:'bot',texto:'❌ Valor inválido. Por favor, informe apenas números.\n\nExemplos válidos:\n• 150\n• 1500\n• 1.500,00\n• R$ 2.350,50'}]);
+            return;
+          }
+          
+          const nova = createOSObject(awaitingOS, valor);
+          await persist([...ordens, nova]);
+          setChatMessages(prev=>[...prev,{tipo:'bot',texto:`✅ Ordem de Serviço criada com sucesso!\n\n📋 ${nova.numero}\n👤 Cliente: ${nova.cliente}\n💰 Valor: R$ ${Number(nova.valor).toFixed(2)}\n📅 Data: ${nova.data}\n\n➡️ Acesse a aba "Ordens" para gerenciar.`}]);
+          setAwaitingOS(null);
+          return;
+        }
+
+        // Parse da solicitação
+        const parsed = parseSolicitud(msg);
+        
+        if (!parsed.cliente || parsed.cliente === 'Não informado') {
+          setChatMessages(prev=>[...prev,{tipo:'bot',texto:'❌ Não consegui identificar os dados da solicitação.\n\nPor favor, envie no formato:\n👤 Nome: [nome do cliente]\n📱 Telefone: [telefone]\n🏠 Endereço: [endereço]\n🛠 Serviço: [tipo de serviço]\n📝 Descrição: [detalhes]\n⏰ Data/Hora: [data/hora]\n✅ Autorização: [sim/não]'}]);
+          return;
+        }
+
+        const summary = `✅ Solicitação identificada!\n\n👤 Cliente: ${parsed.cliente}\n📱 Telefone: ${parsed.telefone || 'Não informado'}\n🏠 Endereço: ${parsed.endereco || 'Não informado'}\n🛠 Serviço: ${parsed.servico || 'Não informado'}\n📝 Descrição: ${parsed.descricao}\n📸 Evidências: ${parsed.evidencias} foto(s)\n⏰ Data/Hora: ${parsed.datahora}\n✅ Autorização: ${parsed.autorizacao ? 'Sim' : 'Não'}`;
+        
+        setChatMessages(prev=>[...prev,{tipo:'bot',texto:summary},{tipo:'bot',texto:'💰 Agora informe o valor do serviço em reais.\n\nExemplos:\n• 150\n• 1500\n• 1.500,00\n• R$ 2.350,50'}]);
+        setAwaitingOS(parsed);
+      };
+
+      // Atualiza status
+      const updateStatus = async (id, status) => {
+        const updated = ordens.map(o=> o.id===id ? {...o, status} : o);
+        await persist(updated);
+      };
+
+      // Deleta O.S.
+      const deleteOS = async (id) => {
+        if (!confirm('⚠️ Confirmar exclusão desta Ordem de Serviço?\n\nEsta ação não pode ser desfeita.')) return;
+        const updated = ordens.filter(o=>o.id!==id);
+        await persist(updated);
+      };
+
+      // Estatísticas
+      const stats = {
+        total: ordens.length,
+        pendentes: ordens.filter(o=>o.status==='pendente').length,
+        andamento: ordens.filter(o=>o.status==='andamento').length,
+        concluidas: ordens.filter(o=>o.status==='concluido').length,
+        canceladas: ordens.filter(o=>o.status==='cancelado').length,
+        faturamento: ordens.filter(o=>o.status==='concluido').reduce((s,o)=>s+Number(o.valor||0),0)
+      };
+
+      // Seed de teste
+      const seed = async ()=>{
+        const sample = [
+          { id:Date.now(), numero:'OS-0001', data:'14/10/2025, 10:00', cliente:'João Silva', telefone:'(83)99999-0001', endereco:'Rua das Flores, 123', servico:'Instalação', descricao:'Instalação de ar condicionado Split 12.000 BTUs', valor:450, autorizacao:true, evidencias:2, status:'pendente' },
+          { id:Date.now()+1, numero:'OS-0002', data:'13/10/2025, 15:30', cliente:'Maria Santos', telefone:'(83)99999-0002', endereco:'Av. Principal, 456', servico:'Manutenção', descricao:'Manutenção preventiva sistema elétrico', valor:320, autorizacao:true, evidencias:1, status:'andamento' },
+          { id:Date.now()+2, numero:'OS-0003', data:'12/10/2025, 09:15', cliente:'Pedro Costa', telefone:'(83)99999-0003', endereco:'Rua do Comércio, 789', servico:'Reparo', descricao:'Reparo em bomba d\'água', valor:180, autorizacao:true, evidencias:0, status:'concluido' }
+        ];
+        await persist(sample);
+        alert('✅ Dados de exemplo criados com sucesso!');
+      };
+
+      // Limpar dados
+      const clearAll = async ()=>{ 
+        if(confirm('⚠️ Tem certeza que deseja limpar TODOS os dados?\n\nEsta ação não pode ser desfeita!')){ 
+          await persist([]);
+          setChatMessages([]);
+          setAwaitingOS(null);
+          alert('🧹 Todos os dados foram removidos com sucesso!');
+        }
+      };
+
+      if (loading) {
+        return (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:16}}>
+            <div style={{fontSize:48}}>⚙️</div>
+            <div style={{color:'#6b7280'}}>Carregando Sistema O.S...</div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'var(--bg)'}}>
+          {/* HEADER */}
+          <header style={{background:'linear-gradient(135deg, #1e293b 0%, #334155 100%)',color:'#fff',padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',boxShadow:'0 2px 8px rgba(0,0,0,0.15)'}}>
+            <div>
+              <h1 style={{margin:0,fontSize:20,fontWeight:700}}>Sistema O.S.</h1>
+              <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Mobile v1.0 • {storage.isCapacitor() ? 'App Nativo' : 'Navegador'}</div>
+            </div>
+            <div style={{fontSize:11,color:'#cbd5e1'}}>{new Date().toLocaleDateString('pt-BR')}</div>
+          </header>
+
+          {/* CONTEÚDO PRINCIPAL */}
+          <main style={{flex:1,overflow:'auto',padding:14,paddingBottom:70}}>
+            {activeTab==='dashboard' && (
+              <div>
+                <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>📊 Dashboard</h2>
+                
+                <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:14}}>
+                  <StatCard title="Total O.S." value={stats.total} color="#3b82f6" icon="📋" />
+                  <StatCard title="Pendentes" value={stats.pendentes} color="#f59e0b" icon="⏳" />
+                  <StatCard title="Em Andamento" value={stats.andamento} color="#8b5cf6" icon="⚙️" />
+                  <StatCard title="Concluídas" value={stats.concluidas} color="#10b981" icon="✅" />
+                  <StatCard title="Canceladas" value={stats.canceladas} color="#ef4444" icon="❌" />
+                  <StatCard title="Faturamento" value={`R$ ${stats.faturamento.toFixed(2)}`} color="#06b6d4" icon="💰" />
+                </div>
+
+                <div style={{background:'#fff',padding:14,borderRadius:12,boxShadow:'0 2px 4px rgba(0,0,0,0.05)'}}>
+                  <h3 style={{margin:'0 0 12px 0',fontSize:16,color:'#1f2937'}}>📋 Últimas Ordens de Serviço</h3>
+                  
+                  {ordens.length === 0 ? (
+                    <div style={{textAlign:'center',padding:30,color:'#9ca3af'}}>
+                      <div style={{fontSize:48,marginBottom:12}}>📭</div>
+                      <p style={{margin:0}}>Nenhuma O.S. cadastrada ainda.</p>
+                      <p style={{margin:'8px 0 0 0',fontSize:13}}>Use o Chat Assistente para criar sua primeira ordem!</p>
+                    </div>
+                  ) : (
+                    <div style={{overflowX:'auto'}}>
+                      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                        <thead>
+                          <tr style={{borderBottom:'2px solid #e5e7eb',textAlign:'left'}}>
+                            <th style={{padding:'8px 4px',fontWeight:600}}>Nº</th>
+                            <th style={{padding:'8px 4px',fontWeight:600}}>Cliente</th>
+                            <th style={{padding:'8px 4px',fontWeight:600}}>Valor</th>
+                            <th style={{padding:'8px 4px',fontWeight:600}}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ordens.slice(-5).reverse().map(o=> (
+                            <tr key={o.id} style={{borderBottom:'1px solid #f3f4f6'}}>
+                              <td style={{padding:'10px 4px',fontWeight:500,color:'#3b82f6'}}>{o.numero}</td>
+                              <td style={{padding:'10px 4px'}}>{o.cliente}</td>
+                              <td style={{padding:'10px 4px',fontWeight:500,color:'#059669'}}>R$ {Number(o.valor||0).toFixed(2)}</td>
+                              <td style={{padding:'10px 4px'}}>
+                                <StatusBadge status={o.status} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{marginTop:14,display:'flex',gap:8}}>
+                  <button className="btn" onClick={seed} style={{flex:1,background:'#06b6d4',color:'#fff'}}>📝 Criar Exemplos</button>
+                  <button className="btn" onClick={clearAll} style={{flex:1,background:'#ef4444',color:'#fff'}}>🧹 Limpar Tudo</button>
+                </div>
+              </div>
+            )}
+
+            {activeTab==='ordens' && (
+              <div>
+                <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>📋 Ordens de Serviço ({ordens.length})</h2>
+
+                {ordens.length === 0 ? (
+                  <div style={{background:'#fff',padding:40,borderRadius:12,textAlign:'center',boxShadow:'0 2px 4px rgba(0,0,0,0.05)'}}>
+                    <div style={{fontSize:64,marginBottom:16}}>📋</div>
+                    <h3 style={{margin:'0 0 8px 0',color:'#1f2937'}}>Nenhuma O.S. cadastrada</h3>
+                    <p style={{margin:0,color:'#6b7280',fontSize:14}}>Vá até o Chat Assistente para criar sua primeira ordem de serviço!</p>
+                  </div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {ordens.map(o=> (
+                      <OSCard key={o.id} os={o} onUpdateStatus={updateStatus} onDelete={deleteOS} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab==='chat' && (
+              <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 180px)'}}>
+                <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>💬 Chat Assistente IA</h2>
+                
+                <div style={{flex:1,background:'#fff',padding:14,borderRadius:12,overflowY:'auto',boxShadow:'0 2px 4px rgba(0,0,0,0.05)',marginBottom:10}}>
+                  {chatMessages.length===0 ? (
+                    <div style={{textAlign:'center',padding:30,color:'#6b7280'}}>
+                      <div style={{fontSize:64,marginBottom:16}}>🤖</div>
+                      <h3 style={{margin:'0 0 8px 0',color:'#1f2937'}}>Olá! Sou seu assistente IA</h3>
+                      <p style={{margin:0,fontSize:14,lineHeight:1.6}}>Cole uma solicitação de serviço e eu vou extrair automaticamente todos os dados para criar a Ordem de Serviço.</p>
+                      
+                      <div style={{background:'#f3f4f6',padding:12,borderRadius:8,marginTop:20,textAlign:'left',fontSize:13}}>
+                        <strong>📝 Formato esperado:</strong>
+                        <pre style={{margin:'8px 0 0 0',lineHeight:1.6,whiteSpace:'pre-wrap'}}>👤 Nome: João Silva
+📱 Telefone: (83)99999-0000
+🏠 Endereço: Rua das Flores, 123
+🛠 Serviço: Instalação
+📝 Descrição: Detalhes do serviço
+⏰ Data/Hora: 14/10/2025, 10:00
+✅ Autorização: Sim</pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {chatMessages.map((m,i)=>(
+                        <div key={i} style={{marginBottom:12,display:'flex',justifyContent:m.tipo==='user'?'flex-end':'flex-start'}}>
+                          <div style={{
+                            maxWidth:'85%',
+                            background:m.tipo==='user'?'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)':'#f3f4f6',
+                            color:m.tipo==='user'?'#fff':'#1f2937',
+                            padding:'10px 14px',
+                            borderRadius:m.tipo==='user'?'16px 16px 2px 16px':'16px 16px 16px 2px',
+                            whiteSpace:'pre-wrap',
+                            fontSize:14,
+                            lineHeight:1.5,
+                            boxShadow:m.tipo==='user'?'0 2px 8px rgba(59,130,246,0.3)':'0 1px 3px rgba(0,0,0,0.1)'
+                          }}>
+                            {m.texto}
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </>
+                  )}
+                </div>
+
+                <div style={{display:'flex',gap:8}}>
+                  <textarea
+                    value={chatInput} 
+                    onChange={e=>setChatInput(e.target.value)} 
+                    onKeyPress={e=>{if(e.key==='Enter' && !e.shiftKey){e.preventDefault();processChat();}}}
+                    placeholder={awaitingOS ? "Digite o valor do serviço..." : "Cole a solicitação ou digite sua mensagem..."}
+                    rows={2}
+                    style={{
+                      flex:1,
+                      padding:12,
+                      borderRadius:10,
+                      border:'2px solid #e5e7eb',
+                      fontSize:14,
+                      resize:'none',
+                      fontFamily:'inherit',
+                      outline:'none',
+                      transition:'border-color 0.2s'
+                    }}
+                    onFocus={e=>e.target.style.borderColor='#3b82f6'}
+                    onBlur={e=>e.target.style.borderColor='#e5e7eb'}
+                  />
+                  <button 
+                    onClick={processChat} 
+                    className="btn" 
+                    style={{
+                      background:'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color:'#fff',
+                      padding:'12px 20px',
+                      boxShadow:'0 2px 8px rgba(59,130,246,0.3)'
+                    }}
+                  >
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* NAVEGAÇÃO INFERIOR */}
+          <nav style={{
+            position:'fixed',
+            bottom:0,
+            left:0,
+            right:0,
+            display:'flex',
+            background:'#fff',
+            borderTop:'1px solid #e5e7eb',
+            padding:'8px 0',
+            boxShadow:'0 -2px 10px rgba(0,0,0,0.05)'
+          }}>
+            {[
+              {id:'dashboard',label:'Dashboard',icon:'📊'},
+              {id:'ordens',label:'Ordens',icon:'📋'},
+              {id:'chat',label:'Chat IA',icon:'💬'}
+            ].map(it=> (
+              <button 
+                key={it.id} 
+                onClick={()=>setActiveTab(it.id)} 
+                style={{
+                  flex:1,
+                  padding:'10px 8px',
+                  background:activeTab===it.id? '#3b82f6':'transparent',
+                  color:activeTab===it.id? '#fff':'#6b7280',
+                  border:'none',
+                  borderRadius:10,
+                  fontSize:12,
+                  fontWeight:activeTab===it.id?600:400,
+                  cursor:'pointer',
+                  display:'flex',
+                  flexDirection:'column',
+                  alignItems:'center',
+                  gap:4,
+                  margin:'0 4px',
+                  transition:'all 0.2s'
+                }}
+              >
+                <span style={{fontSize:20}}>{it.icon}</span>
+                <span>{it.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      );
+    }
+
+    // Componente Card de Estatística
+    function StatCard({title,value,color,icon}){
+      return (
+        <div style={{
+          background:'#fff',
+          padding:14,
+          borderRadius:12,
+          boxShadow:'0 2px 4px rgba(0,0,0,0.05)',
+          borderLeft:`4px solid ${color}`
+        }}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+            <p style={{margin:0,color:'#6b7280',fontSize:12,fontWeight:500}}>{title}</p>
+            <span style={{fontSize:20}}>{icon}</span>
+          </div>
+          <p style={{margin:0,fontSize:22,fontWeight:700,color:color}}>{value}</p>
+        </div>
+      );
+    }
+
+    // Badge de Status
+    function StatusBadge({status}){
+      const configs = {
+        pendente: {bg:'#fef3c7',color:'#f59e0b',label:'⏳ Pendente'},
+        andamento: {bg:'#ddd6fe',color:'#8b5cf6',label:'⚙️ Em Andamento'},
+        concluido: {bg:'#d1fae5',color:'#059669',label:'✅ Concluído'},
+        cancelado: {bg:'#fee2e2',color:'#dc2626',label:'❌ Cancelado'}
+      };
+      const cfg = configs[status] || configs.pendente;
+      return (
+        <span style={{
+          background:cfg.bg,
+          color:cfg.color,
+          padding:'4px 10px',
+          borderRadius:20,
+          fontSize:11,
+          fontWeight:600,
+          display:'inline-block'
+        }}>
+          {cfg.label}
+        </span>
+      );
+    }
+
+    // Card de Ordem de Serviço
+    function OSCard({os,onUpdateStatus,onDelete}){
+      const [expanded, setExpanded] = useState(false);
+      
+      return (
+        <div style={{
+          background:'#fff',
+          padding:14,
+          borderRadius:12,
+          boxShadow:'0 2px 4px rgba(0,0,0,0.05)',
+          borderLeft:'4px solid #3b82f6'
+        }}>
+          <div onClick={()=>setExpanded(!expanded)} style={{cursor:'pointer'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+              <div>
+                <h3 style={{margin:'0 0 4px 0',fontSize:16,fontWeight:700,color:'#1f2937'}}>{os.numero}</h3>
+                <p style={{margin:0,color:'#6b7280',fontSize:13}}>{os.cliente}</p>
+              </div>
+              <StatusBadge status={os.status} />
+            </div>
+            
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontSize:18,fontWeight:700,color:'#059669'}}>R$ {Number(os.valor||0).toFixed(2)}</span>
+              <span style={{fontSize:20}}>{expanded ? '▲' : '▼'}</span>
+            </div>
+          </div>
+
+          {expanded && (
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #e5e7eb'}}>
+              <div style={{display:'grid',gap:8,fontSize:13,marginBottom:12}}>
+                <InfoRow icon="📱" label="Telefone" value={os.telefone || 'Não informado'} />
+                <InfoRow icon="🏠" label="Endereço" value={os.endereco || 'Não informado'} />
+                <InfoRow icon="🛠" label="Serviço" value={os.servico || 'Não informado'} />
+                <InfoRow icon="📝" label="Descrição" value={os.descricao} />
+                <InfoRow icon="📸" label="Evidências" value={`${os.evidencias} foto(s)`} />
+                <InfoRow icon="⏰" label="Data/Hora" value={os.data} />
+                <InfoRow icon="✅" label="Autorização" value={os.autorizacao ? 'Sim' : 'Não'} />
+              </div>
+
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {os.status !== 'andamento' && (
+                  <button 
+                    onClick={()=>onUpdateStatus(os.id,'andamento')} 
+                    className="btn"
+                    style={{background:'#f59e0b',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                  >
+                    ▶️ Iniciar
+                  </button>
+                )}
+                {os.status !== 'concluido' && (
+                  <button 
+                    onClick={()=>onUpdateStatus(os.id,'concluido')} 
+                    className="btn"
+                    style={{background:'#10b981',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                  >
+                    ✅ Concluir
+                  </button>
+                )}
+                {os.status !== 'cancelado' && (
+                  <button 
+                    onClick={()=>onUpdateStatus(os.id,'cancelado')} 
+                    className="btn"
+                    style={{background:'#ef4444',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                  >
+                    ❌ Cancelar
+                  </button>
+                )}
+                <button 
+                  onClick={()=>onDelete(os.id)} 
+                  className="btn"
+                  style={{background:'#6b7280',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                >
+                  🗑️ Excluir
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Linha de Informação
+    function InfoRow({icon,label,value}){
+      return (
+        <div style={{display:'flex',gap:8}}>
+          <span style={{fontSize:16}}>{icon}</span>
+          <div style={{flex:1}}>
+            <strong style={{color:'#6b7280',fontSize:12}}>{label}:</strong>
+            <div style={{color:'#1f2937',marginTop:2}}>{value}</div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
