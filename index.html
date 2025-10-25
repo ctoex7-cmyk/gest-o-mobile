@@ -14,6 +14,46 @@
     .btn:active{transform:scale(0.95)}
     * { -webkit-tap-highlight-color: transparent; box-sizing:border-box }
     input,textarea{font-family:inherit}
+    
+    /* Estilos responsivos */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    
+    .main-content {
+      padding: 14px;
+    }
+    
+    .nav-item {
+      padding: 10px 8px; /* Padrão */
+      margin: 0 4px; /* Padrão */
+    }
+    
+    @media (max-width: 600px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr; /* Coluna única em telas menores */
+      }
+      
+      .main-content {
+        padding: 10px !important;
+      }
+      
+      .nav-item {
+        padding: 8px 4px !important; /* Ajuste para telas muito pequenas */
+        margin: 0 2px !important;
+      }
+      
+      .header-title {
+        font-size: 18px !important;
+      }
+      
+      .header-subtitle {
+        font-size: 10px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -245,7 +285,9 @@
         const sample = [
           { id:Date.now(), numero:'OS-0001', data:'14/10/2025, 10:00', cliente:'João Silva', telefone:'(83)99999-0001', endereco:'Rua das Flores, 123', servico:'Instalação', descricao:'Instalação de ar condicionado Split 12.000 BTUs', valor:450, autorizacao:true, evidencias:2, status:'pendente' },
           { id:Date.now()+1, numero:'OS-0002', data:'13/10/2025, 15:30', cliente:'Maria Santos', telefone:'(83)99999-0002', endereco:'Av. Principal, 456', servico:'Manutenção', descricao:'Manutenção preventiva sistema elétrico', valor:320, autorizacao:true, evidencias:1, status:'andamento' },
-          { id:Date.now()+2, numero:'OS-0003', data:'12/10/2025, 09:15', cliente:'Pedro Costa', telefone:'(83)99999-0003', endereco:'Rua do Comércio, 789', servico:'Reparo', descricao:'Reparo em bomba d\'água', valor:180, autorizacao:true, evidencias:0, status:'concluido' }
+          { id:Date.now()+2, numero:'OS-0003', data:'14/10/2025, 08:00', cliente:'Pedro Souza', telefone:'(83)99999-0003', endereco:'Rua B, 789', servico:'Reparo', descricao:'Troca de fusível e disjuntor', valor:150, autorizacao:true, evidencias:0, status:'concluido' },
+          { id:Date.now()+3, numero:'OS-0004', data:'15/10/2025, 11:00', cliente:'Ana Paula', telefone:'(83)99999-0004', endereco:'Av. Secundária, 101', servico:'Instalação', descricao:'Instalação de ventilador de teto', valor:200, autorizacao:false, evidencias:3, status:'cancelado' },
+          { id:Date.now()+4, numero:'OS-0005', data:'15/10/2025, 14:00', cliente:'Carlos Lima', telefone:'(83)99999-0005', endereco:'Travessa C, 202', servico:'Manutenção', descricao:'Limpeza de sistema de refrigeração', valor:250, autorizacao:true, evidencias:1, status:'pendente' },
         ];
         await persist(sample);
         alert('✅ Dados de exemplo criados com sucesso!');
@@ -275,19 +317,19 @@
           {/* HEADER */}
           <header style={{background:'linear-gradient(135deg, #1e293b 0%, #334155 100%)',color:'#fff',padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',boxShadow:'0 2px 8px rgba(0,0,0,0.15)'}}>
             <div>
-              <h1 style={{margin:0,fontSize:20,fontWeight:700}}>Sistema O.S.</h1>
-              <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Mobile v1.0 • {storage.isCapacitor() ? 'App Nativo' : 'Navegador'}</div>
+              <h1 className="header-title" style={{margin:0,fontSize:20,fontWeight:700}}>Sistema O.S.</h1>
+              <div className="header-subtitle" style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Mobile v1.0 • {storage.isCapacitor() ? 'App Nativo' : 'Navegador'}</div>
             </div>
             <div style={{fontSize:11,color:'#cbd5e1'}}>{new Date().toLocaleDateString('pt-BR')}</div>
           </header>
 
           {/* CONTEÚDO PRINCIPAL */}
-          <main style={{flex:1,overflow:'auto',padding:14,paddingBottom:70}}>
+          <main className="main-content" style={{flex:1,overflow:'auto',paddingBottom:70}}>
             {activeTab==='dashboard' && (
               <div>
                 <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>📊 Dashboard</h2>
                 
-                <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:14}}>
+                <div className="dashboard-grid">
                   <StatCard title="Total O.S." value={stats.total} color="#3b82f6" icon="📋" />
                   <StatCard title="Pendentes" value={stats.pendentes} color="#f59e0b" icon="⏳" />
                   <StatCard title="Em Andamento" value={stats.andamento} color="#8b5cf6" icon="⚙️" />
@@ -464,9 +506,9 @@
               <button 
                 key={it.id} 
                 onClick={()=>setActiveTab(it.id)} 
+                className="nav-item"
                 style={{
                   flex:1,
-                  padding:'10px 8px',
                   background:activeTab===it.id? '#3b82f6':'transparent',
                   color:activeTab===it.id? '#fff':'#6b7280',
                   border:'none',
@@ -478,7 +520,6 @@
                   flexDirection:'column',
                   alignItems:'center',
                   gap:4,
-                  margin:'0 4px',
                   transition:'all 0.2s'
                 }}
               >
