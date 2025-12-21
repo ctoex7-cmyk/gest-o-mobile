@@ -472,9 +472,31 @@
     const parseNumber = (text) => {
       if (!text) return null;
       const cleaned = String(text).replace(/[^\d.,]/g, '');
-      const m = cleaned.match(/[0-9]+(?:[.,][0-9]{1,2})?/);
-      if (!m) return null;
-      const raw = m[0].replace(/\./g,'').replace(',', '.');
+      if (!cleaned) return null;
+
+      // 1. Encontra o último separador (ponto ou vírgula)
+      const lastSeparatorIndex = Math.max(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','));
+      
+      let raw = cleaned;
+
+      if (lastSeparatorIndex !== -1) {
+        const lastSeparator = cleaned[lastSeparatorIndex];
+        const decimalPart = cleaned.substring(lastSeparatorIndex + 1);
+        
+        // Se o último separador for vírgula E houver 2 ou menos dígitos depois (provável decimal brasileiro)
+        // OU se o último separador for vírgula e for o único separador
+        if (lastSeparator === ',' && (decimalPart.length <= 2 || cleaned.indexOf('.') === -1)) {
+          // Formato brasileiro: remove pontos (milhar) e troca vírgula por ponto (decimal)
+          raw = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+          // Formato americano ou ponto como milhar: remove vírgulas (milhar)
+          raw = cleaned.replace(/,/g, '');
+        }
+      } else {
+        // Sem separadores, é um inteiro.
+        raw = cleaned;
+      }
+      
       const n = parseFloat(raw);
       return isNaN(n) ? null : n;
     };
@@ -522,6 +544,8 @@
       const [chatMessages, setChatMessages] = useState([]);
       const [chatInput, setChatInput] = useState('');
       const [awaitingOS, setAwaitingOS] = useState(null);
+      const [awaitingValue, setAwaitingValue] = useState(false);
+      const [awaitingTeamDescription, setAwaitingTeamDescription] = useState(false);
       const [loading, setLoading] = useState(true);
       const chatEndRef = useRef(null);
 
@@ -553,7 +577,7 @@
       };
 
       // Cria objeto de O.S.
-      const createOSObject = (data, valor) => ({
+      const createOSObject = (data, valor, equipeDescricao) => ({
         id: Date.now(),
         numero: `OS-${String((ordens.length+1)).padStart(4,'0')}`,
         data: data.datahora || new Date().toLocaleString('pt-BR'),
@@ -565,6 +589,7 @@
         valor: Number(valor || 0),
         autorizacao: !!data.autorizacao,
         evidencias: data.evidencias || 0,
+        equipeDescricao: equipeDescricao || 'Não informado',
         status: 'pendente'
       });
 
@@ -576,17 +601,35 @@
         setChatMessages(prev=>[...prev,{tipo:'user',texto:msg}]);
         setChatInput('');
 
-        if (awaitingOS) {
+        if (awaitingValue) {
           const valor = parseNumber(msg);
           if (valor === null) {
             setChatMessages(prev=>[...prev,{tipo:'bot',texto:'❌ Valor inválido. Por favor, informe apenas números.\n\nExemplos válidos:\n• 150\n• 1500\n• 1.500,00\n• R$ 2.350,50'}]);
             return;
           }
           
-          const nova = createOSObject(awaitingOS, valor);
+          const osComValor = {...awaitingOS, valor: valor};
+          setAwaitingOS(osComValor);
+          setAwaitingValue(false);
+          setAwaitingTeamDescription(true);
+          
+          setChatMessages(prev=>[...prev,{tipo:'bot',texto:'👥 Agora descreva a equipe que realizou o serviço.\n\nExemplos:\n• João Silva e Pedro Costa\n• Equipe de Manutenção\n• Técnico responsável: Carlos\n• Nomes dos profissionais...'}]);
+          return;
+        }
+
+        if (awaitingTeamDescription) {
+          const equipeDescricao = msg;
+          
+          const nova = createOSObject(awaitingOS, awaitingOS.valor, equipeDescricao);
           await persist([...ordens, nova]);
-          setChatMessages(prev=>[...prev,{tipo:'bot',texto:`✅ Ordem de Serviço criada com sucesso!\n\n📋 ${nova.numero}\n👤 Cliente: ${nova.cliente}\n💰 Valor: R$ ${Number(nova.valor).toFixed(2)}\n📅 Data: ${nova.data}\n\n➡️ Acesse a aba "Ordens" para gerenciar.`}]);
+          setChatMessages(prev=>[...prev,{tipo:'bot',texto:`✅ Ordem de Serviço criada com sucesso!\n\n📋 ${nova.numero}\n👤 Cliente: ${nova.cliente}\n💰 Valor: R$ ${Number(nova.valor).toFixed(2)}\n👥 Equipe: ${nova.equipeDescricao}\n📅 Data: ${nova.data}\n\n➡️ Acesse a aba "Ordens" para gerenciar.`}]);
           setAwaitingOS(null);
+          setAwaitingValue(false);
+          setAwaitingTeamDescription(false);
+          return;
+        }
+
+        if (awaitingOS) {
           return;
         }
 
@@ -602,6 +645,7 @@
         
         setChatMessages(prev=>[...prev,{tipo:'bot',texto:summary},{tipo:'bot',texto:'💰 Agora informe o valor do serviço em reais.\n\nExemplos:\n• 150\n• 1500\n• 1.500,00\n• R$ 2.350,50'}]);
         setAwaitingOS(parsed);
+        setAwaitingValue(true);
       };
 
       // Atualiza status
@@ -646,6 +690,8 @@
           await persist([]);
           setChatMessages([]);
           setAwaitingOS(null);
+          setAwaitingValue(false);
+          setAwaitingTeamDescription(false);
           alert('🧹 Todos os dados foram removidos com sucesso!');
         }
       };
@@ -930,13 +976,14 @@
           {expanded && (
             <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #e5e7eb'}}>
               <div className="info-section" style={{marginBottom:12}}>
-                <InfoRow icon="📱" label="Telefone" value={os.telefone || 'Não informado'} />
+                <InfoRow icon="💱" label="Telefone" value={os.telefone || 'Não informado'} />
                 <InfoRow icon="🏠" label="Endereço" value={os.endereco || 'Não informado'} />
                 <InfoRow icon="🛠" label="Serviço" value={os.servico || 'Não informado'} />
                 <InfoRow icon="📝" label="Descrição" value={os.descricao} />
-                <InfoRow icon="📸" label="Evidências" value={`${os.evidencias} foto(s)`} />
+                <InfoRow icon="📈" label="Evidências" value={`${os.evidencias} foto(s)`} />
                 <InfoRow icon="⏰" label="Data/Hora" value={os.data} />
                 <InfoRow icon="✅" label="Autorização" value={os.autorizacao ? 'Sim' : 'Não'} />
+                <InfoRow icon="👥" label="Equipe" value={os.equipeDescricao || 'Não informado'} />
               </div>
 
               <div className="os-card-buttons">
