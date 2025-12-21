@@ -15,43 +15,390 @@
     * { -webkit-tap-highlight-color: transparent; box-sizing:border-box }
     input,textarea{font-family:inherit}
     
-    /* Estilos responsivos */
+    /* ============================================
+       ESTILOS BASE - MOBILE FIRST (até 480px)
+       ============================================ */
+    
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 12px;
       margin-bottom: 14px;
     }
     
     .main-content {
-      padding: 14px;
+      padding: 12px;
     }
     
     .nav-item {
-      padding: 10px 8px; /* Padrão */
-      margin: 0 4px; /* Padrão */
+      padding: 8px 6px;
+      margin: 0 2px;
+      font-size: 11px;
     }
     
-    @media (max-width: 600px) {
+    .header-title {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+    }
+    
+    .header-subtitle {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+      font-size: 12px;
+    }
+    
+    table th, table td {
+      padding: 8px 6px;
+    }
+    
+    .stat-card-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .os-card-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .os-card-buttons button {
+      width: 100%;
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+    
+    .info-row {
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .chat-message {
+      max-width: 90%;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+      flex-direction: column;
+    }
+    
+    .chat-input-area textarea {
+      width: 100%;
+      font-size: 13px;
+    }
+    
+    .chat-input-area button {
+      width: 100%;
+      font-size: 13px;
+    }
+    
+    /* ============================================
+       TABLET (481px até 768px)
+       ============================================ */
+    @media (min-width: 481px) {
       .dashboard-grid {
-        grid-template-columns: 1fr; /* Coluna única em telas menores */
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
       }
       
       .main-content {
-        padding: 10px !important;
+        padding: 14px;
       }
       
       .nav-item {
-        padding: 8px 4px !important; /* Ajuste para telas muito pequenas */
-        margin: 0 2px !important;
+        padding: 10px 8px;
+        margin: 0 4px;
+        font-size: 12px;
       }
       
       .header-title {
-        font-size: 18px !important;
+        font-size: 20px;
       }
       
       .header-subtitle {
-        font-size: 10px !important;
+        font-size: 11px;
+      }
+      
+      table {
+        font-size: 13px;
+      }
+      
+      table th, table td {
+        padding: 10px 8px;
+      }
+      
+      .chat-message {
+        max-width: 80%;
+        font-size: 14px;
+      }
+      
+      .chat-input-area {
+        flex-direction: row;
+      }
+      
+      .chat-input-area button {
+        width: auto;
+        flex-shrink: 0;
+      }
+      
+      .os-card-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      
+      .os-card-buttons button {
+        width: auto;
+        flex: 1;
+        min-width: 100px;
+      }
+    }
+    
+    /* ============================================
+       DESKTOP MÉDIO (769px até 1024px)
+       ============================================ */
+    @media (min-width: 769px) {
+      .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      
+      .main-content {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      
+      .nav-item {
+        padding: 12px 10px;
+        margin: 0 6px;
+        font-size: 13px;
+      }
+      
+      .header-title {
+        font-size: 24px;
+      }
+      
+      .header-subtitle {
+        font-size: 12px;
+      }
+      
+      table {
+        font-size: 14px;
+      }
+      
+      table th, table td {
+        padding: 12px 10px;
+      }
+      
+      .chat-message {
+        max-width: 70%;
+        font-size: 15px;
+      }
+      
+      .info-row {
+        font-size: 14px;
+      }
+      
+      .btn {
+        padding: 12px 16px;
+        font-size: 15px;
+      }
+    }
+    
+    /* ============================================
+       DESKTOP GRANDE (acima de 1024px)
+       ============================================ */
+    @media (min-width: 1025px) {
+      .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+      
+      .main-content {
+        padding: 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      
+      .nav-item {
+        padding: 14px 12px;
+        margin: 0 8px;
+        font-size: 14px;
+      }
+      
+      .header-title {
+        font-size: 28px;
+      }
+      
+      .header-subtitle {
+        font-size: 13px;
+      }
+      
+      table {
+        font-size: 15px;
+      }
+      
+      table th, table td {
+        padding: 14px 12px;
+      }
+      
+      .chat-message {
+        max-width: 60%;
+        font-size: 16px;
+      }
+      
+      .info-row {
+        font-size: 15px;
+      }
+      
+      .btn {
+        padding: 14px 20px;
+        font-size: 16px;
+      }
+      
+      .table-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
+    }
+    
+    /* ============================================
+       AJUSTES ESPECÍFICOS PARA LAYOUT
+       ============================================ */
+    
+    /* Header responsivo */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    @media (max-width: 480px) {
+      header {
+        padding: 12px 12px;
+      }
+      
+      header > div:last-child {
+        font-size: 10px;
+      }
+    }
+    
+    /* Navegação responsiva */
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+    
+    @media (max-width: 480px) {
+      nav {
+        padding: 6px 0;
+      }
+    }
+    
+    /* Conteúdo do chat responsivo */
+    .chat-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 12px;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    
+    /* Cards responsivos */
+    .card {
+      padding: 14px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    @media (max-width: 480px) {
+      .card {
+        padding: 12px;
+        border-radius: 10px;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      .card {
+        padding: 16px;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
+    }
+    
+    /* Ajustes para textarea */
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+      max-height: 150px;
+    }
+    
+    @media (max-width: 480px) {
+      textarea {
+        min-height: 50px;
+        font-size: 14px;
+      }
+    }
+    
+    /* Ajustes para ícones em diferentes resoluções */
+    .icon-large {
+      font-size: 20px;
+    }
+    
+    @media (max-width: 480px) {
+      .icon-large {
+        font-size: 18px;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      .icon-large {
+        font-size: 24px;
+      }
+    }
+    
+    /* Ajustes para seções de informação */
+    .info-section {
+      display: grid;
+      gap: 8px;
+    }
+    
+    @media (min-width: 769px) {
+      .info-section {
+        gap: 12px;
       }
     }
   </style>
@@ -317,10 +664,10 @@
           {/* HEADER */}
           <header style={{background:'linear-gradient(135deg, #1e293b 0%, #334155 100%)',color:'#fff',padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',boxShadow:'0 2px 8px rgba(0,0,0,0.15)'}}>
             <div>
-              <h1 className="header-title" style={{margin:0,fontSize:20,fontWeight:700}}>Sistema O.S.</h1>
-              <div className="header-subtitle" style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Mobile v1.0 • {storage.isCapacitor() ? 'App Nativo' : 'Navegador'}</div>
+              <h1 className="header-title">Sistema O.S.</h1>
+              <div className="header-subtitle" style={{color:'#94a3b8'}}>{storage.isCapacitor() ? 'App Nativo' : 'Navegador'}</div>
             </div>
-            <div style={{fontSize:11,color:'#cbd5e1'}}>{new Date().toLocaleDateString('pt-BR')}</div>
+            <div style={{fontSize:12,color:'#cbd5e1'}}>{new Date().toLocaleDateString('pt-BR')}</div>
           </header>
 
           {/* CONTEÚDO PRINCIPAL */}
@@ -338,7 +685,7 @@
                   <StatCard title="Faturamento" value={`R$ ${stats.faturamento.toFixed(2)}`} color="#06b6d4" icon="💰" />
                 </div>
 
-                <div style={{background:'#fff',padding:14,borderRadius:12,boxShadow:'0 2px 4px rgba(0,0,0,0.05)'}}>
+                <div className="card" style={{marginBottom:14}}>
                   <h3 style={{margin:'0 0 12px 0',fontSize:16,color:'#1f2937'}}>📋 Últimas Ordens de Serviço</h3>
                   
                   {ordens.length === 0 ? (
@@ -348,23 +695,23 @@
                       <p style={{margin:'8px 0 0 0',fontSize:13}}>Use o Chat Assistente para criar sua primeira ordem!</p>
                     </div>
                   ) : (
-                    <div style={{overflowX:'auto'}}>
-                      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                    <div className="table-wrapper">
+                      <table style={{width:'100%',borderCollapse:'collapse'}}>
                         <thead>
                           <tr style={{borderBottom:'2px solid #e5e7eb',textAlign:'left'}}>
-                            <th style={{padding:'8px 4px',fontWeight:600}}>Nº</th>
-                            <th style={{padding:'8px 4px',fontWeight:600}}>Cliente</th>
-                            <th style={{padding:'8px 4px',fontWeight:600}}>Valor</th>
-                            <th style={{padding:'8px 4px',fontWeight:600}}>Status</th>
+                            <th style={{fontWeight:600}}>Nº</th>
+                            <th style={{fontWeight:600}}>Cliente</th>
+                            <th style={{fontWeight:600}}>Valor</th>
+                            <th style={{fontWeight:600}}>Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {ordens.slice(-5).reverse().map(o=> (
                             <tr key={o.id} style={{borderBottom:'1px solid #f3f4f6'}}>
-                              <td style={{padding:'10px 4px',fontWeight:500,color:'#3b82f6'}}>{o.numero}</td>
-                              <td style={{padding:'10px 4px'}}>{o.cliente}</td>
-                              <td style={{padding:'10px 4px',fontWeight:500,color:'#059669'}}>R$ {Number(o.valor||0).toFixed(2)}</td>
-                              <td style={{padding:'10px 4px'}}>
+                              <td style={{fontWeight:500,color:'#3b82f6'}}>{o.numero}</td>
+                              <td>{o.cliente}</td>
+                              <td style={{fontWeight:500,color:'#059669'}}>R$ {Number(o.valor||0).toFixed(2)}</td>
+                              <td>
                                 <StatusBadge status={o.status} />
                               </td>
                             </tr>
@@ -375,9 +722,9 @@
                   )}
                 </div>
 
-                <div style={{marginTop:14,display:'flex',gap:8}}>
-                  <button className="btn" onClick={seed} style={{flex:1,background:'#06b6d4',color:'#fff'}}>📝 Criar Exemplos</button>
-                  <button className="btn" onClick={clearAll} style={{flex:1,background:'#ef4444',color:'#fff'}}>🧹 Limpar Tudo</button>
+                <div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <button className="btn" onClick={seed} style={{flex:1,minWidth:'120px',background:'#06b6d4',color:'#fff'}}>📝 Criar Exemplos</button>
+                  <button className="btn" onClick={clearAll} style={{flex:1,minWidth:'120px',background:'#ef4444',color:'#fff'}}>🧹 Limpar Tudo</button>
                 </div>
               </div>
             )}
@@ -387,7 +734,7 @@
                 <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>📋 Ordens de Serviço ({ordens.length})</h2>
 
                 {ordens.length === 0 ? (
-                  <div style={{background:'#fff',padding:40,borderRadius:12,textAlign:'center',boxShadow:'0 2px 4px rgba(0,0,0,0.05)'}}>
+                  <div className="card" style={{padding:40,textAlign:'center'}}>
                     <div style={{fontSize:64,marginBottom:16}}>📋</div>
                     <h3 style={{margin:'0 0 8px 0',color:'#1f2937'}}>Nenhuma O.S. cadastrada</h3>
                     <p style={{margin:0,color:'#6b7280',fontSize:14}}>Vá até o Chat Assistente para criar sua primeira ordem de serviço!</p>
@@ -403,10 +750,10 @@
             )}
 
             {activeTab==='chat' && (
-              <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 180px)'}}>
-                <h2 style={{margin:'0 0 14px 0',fontSize:18,color:'#1f2937'}}>💬 Chat Assistente IA</h2>
+              <div className="chat-content" style={{height:'calc(100vh - 180px)'}}>
+                <h2 style={{margin:'0 0 12px 0',fontSize:18,color:'#1f2937'}}>💬 Chat Assistente IA</h2>
                 
-                <div style={{flex:1,background:'#fff',padding:14,borderRadius:12,overflowY:'auto',boxShadow:'0 2px 4px rgba(0,0,0,0.05)',marginBottom:10}}>
+                <div className="chat-messages" style={{background:'#fff',boxShadow:'0 2px 4px rgba(0,0,0,0.05)'}}>
                   {chatMessages.length===0 ? (
                     <div style={{textAlign:'center',padding:30,color:'#6b7280'}}>
                       <div style={{fontSize:64,marginBottom:16}}>🤖</div>
@@ -428,15 +775,11 @@
                     <>
                       {chatMessages.map((m,i)=>(
                         <div key={i} style={{marginBottom:12,display:'flex',justifyContent:m.tipo==='user'?'flex-end':'flex-start'}}>
-                          <div style={{
-                            maxWidth:'85%',
+                          <div className="chat-message" style={{
                             background:m.tipo==='user'?'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)':'#f3f4f6',
                             color:m.tipo==='user'?'#fff':'#1f2937',
-                            padding:'10px 14px',
                             borderRadius:m.tipo==='user'?'16px 16px 2px 16px':'16px 16px 16px 2px',
                             whiteSpace:'pre-wrap',
-                            fontSize:14,
-                            lineHeight:1.5,
                             boxShadow:m.tipo==='user'?'0 2px 8px rgba(59,130,246,0.3)':'0 1px 3px rgba(0,0,0,0.1)'
                           }}>
                             {m.texto}
@@ -448,21 +791,16 @@
                   )}
                 </div>
 
-                <div style={{display:'flex',gap:8}}>
+                <div className="chat-input-area">
                   <textarea
                     value={chatInput} 
                     onChange={e=>setChatInput(e.target.value)} 
                     onKeyPress={e=>{if(e.key==='Enter' && !e.shiftKey){e.preventDefault();processChat();}}}
                     placeholder={awaitingOS ? "Digite o valor do serviço..." : "Cole a solicitação ou digite sua mensagem..."}
-                    rows={2}
                     style={{
-                      flex:1,
                       padding:12,
                       borderRadius:10,
                       border:'2px solid #e5e7eb',
-                      fontSize:14,
-                      resize:'none',
-                      fontFamily:'inherit',
                       outline:'none',
                       transition:'border-color 0.2s'
                     }}
@@ -475,8 +813,8 @@
                     style={{
                       background:'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                       color:'#fff',
-                      padding:'12px 20px',
-                      boxShadow:'0 2px 8px rgba(59,130,246,0.3)'
+                      boxShadow:'0 2px 8px rgba(59,130,246,0.3)',
+                      whiteSpace:'nowrap'
                     }}
                   >
                     Enviar
@@ -513,7 +851,6 @@
                   color:activeTab===it.id? '#fff':'#6b7280',
                   border:'none',
                   borderRadius:10,
-                  fontSize:12,
                   fontWeight:activeTab===it.id?600:400,
                   cursor:'pointer',
                   display:'flex',
@@ -523,7 +860,7 @@
                   transition:'all 0.2s'
                 }}
               >
-                <span style={{fontSize:20}}>{it.icon}</span>
+                <span className="icon-large">{it.icon}</span>
                 <span>{it.label}</span>
               </button>
             ))}
@@ -535,16 +872,10 @@
     // Componente Card de Estatística
     function StatCard({title,value,color,icon}){
       return (
-        <div style={{
-          background:'#fff',
-          padding:14,
-          borderRadius:12,
-          boxShadow:'0 2px 4px rgba(0,0,0,0.05)',
-          borderLeft:`4px solid ${color}`
-        }}>
+        <div className="card" style={{borderLeft:`4px solid ${color}`}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
             <p style={{margin:0,color:'#6b7280',fontSize:12,fontWeight:500}}>{title}</p>
-            <span style={{fontSize:20}}>{icon}</span>
+            <span className="icon-large">{icon}</span>
           </div>
           <p style={{margin:0,fontSize:22,fontWeight:700,color:color}}>{value}</p>
         </div>
@@ -580,13 +911,7 @@
       const [expanded, setExpanded] = useState(false);
       
       return (
-        <div style={{
-          background:'#fff',
-          padding:14,
-          borderRadius:12,
-          boxShadow:'0 2px 4px rgba(0,0,0,0.05)',
-          borderLeft:'4px solid #3b82f6'
-        }}>
+        <div className="card" style={{borderLeft:'4px solid #3b82f6'}}>
           <div onClick={()=>setExpanded(!expanded)} style={{cursor:'pointer'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
               <div>
@@ -604,7 +929,7 @@
 
           {expanded && (
             <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #e5e7eb'}}>
-              <div style={{display:'grid',gap:8,fontSize:13,marginBottom:12}}>
+              <div className="info-section" style={{marginBottom:12}}>
                 <InfoRow icon="📱" label="Telefone" value={os.telefone || 'Não informado'} />
                 <InfoRow icon="🏠" label="Endereço" value={os.endereco || 'Não informado'} />
                 <InfoRow icon="🛠" label="Serviço" value={os.servico || 'Não informado'} />
@@ -614,12 +939,12 @@
                 <InfoRow icon="✅" label="Autorização" value={os.autorizacao ? 'Sim' : 'Não'} />
               </div>
 
-              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              <div className="os-card-buttons">
                 {os.status !== 'andamento' && (
                   <button 
                     onClick={()=>onUpdateStatus(os.id,'andamento')} 
                     className="btn"
-                    style={{background:'#f59e0b',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                    style={{background:'#f59e0b',color:'#fff'}}
                   >
                     ▶️ Iniciar
                   </button>
@@ -628,7 +953,7 @@
                   <button 
                     onClick={()=>onUpdateStatus(os.id,'concluido')} 
                     className="btn"
-                    style={{background:'#10b981',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                    style={{background:'#10b981',color:'#fff'}}
                   >
                     ✅ Concluir
                   </button>
@@ -637,7 +962,7 @@
                   <button 
                     onClick={()=>onUpdateStatus(os.id,'cancelado')} 
                     className="btn"
-                    style={{background:'#ef4444',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                    style={{background:'#ef4444',color:'#fff'}}
                   >
                     ❌ Cancelar
                   </button>
@@ -645,7 +970,7 @@
                 <button 
                   onClick={()=>onDelete(os.id)} 
                   className="btn"
-                  style={{background:'#6b7280',color:'#fff',fontSize:12,padding:'8px 12px'}}
+                  style={{background:'#6b7280',color:'#fff'}}
                 >
                   🗑️ Excluir
                 </button>
@@ -659,7 +984,7 @@
     // Linha de Informação
     function InfoRow({icon,label,value}){
       return (
-        <div style={{display:'flex',gap:8}}>
+        <div className="info-row">
           <span style={{fontSize:16}}>{icon}</span>
           <div style={{flex:1}}>
             <strong style={{color:'#6b7280',fontSize:12}}>{label}:</strong>
